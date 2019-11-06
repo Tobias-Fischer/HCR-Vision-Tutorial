@@ -20,7 +20,7 @@ import numpy as np
 
 class FaceDetector(object):
     def __init__(self):
-        self.pub_face_recognition = rospy.Publisher("/face", String, queue_size=1)
+        self.pub_face_image = rospy.Publisher("/face", Image, queue_size=1)
         self.cv_bridge = CvBridge()
         cascPath = os.path.join(rospkg.RosPack().get_path("ros_vision_tutorial"), "models/haarcascade_frontalface_default.xml")
         self.faceCascade = cv2.CascadeClassifier(cascPath)
@@ -36,14 +36,14 @@ class FaceDetector(object):
 
         # You can now use any OpenCV operation you find to extract "meaning" from the image
         # Here, let's extract faces from the image
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         faces = self.faceCascade.detectMultiScale(
             gray,
             scaleFactor=1.1,
             minNeighbors=5,
             minSize=(30, 30),
-            flags=cv2.cv.CV_HAAR_SCALE_IMAGE
+            flags=cv2.CASCADE_SCALE_IMAGE
         )
 
         img_draw = img.copy()
@@ -53,14 +53,21 @@ class FaceDetector(object):
             cv2.rectangle(img_draw, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
         # Now, let's convert the OpenCV image back to a ROS message
-        face_img = self.cv_bridge.cv2_to_imgmsg(img_draw)
+        face_img = self.cv_bridge.cv2_to_imgmsg(img_draw, "rgb8")
 
         # I recommend setting the timestamp consistent with that of the original image
         # This is useful if you want to synchronise images later on
         face_img.header.stamp = msg.header.stamp
 
         # Finally, publish the face image
-        self.pub_face_image.publish(face_img)
+        try:
+            self.pub_face_image.publish(face_img)
+        except rospy.ROSException as e:
+            if str(e) == "publish() to a closed topic":
+                print("See ya")
+            else:
+                raise e
+        print('Published image', msg.header.stamp.to_sec(), end='\r')
 
 
 if __name__ == "__main__":
@@ -77,4 +84,4 @@ if __name__ == "__main__":
             raise e
     except KeyboardInterrupt:
         print("Shutting down")
-
+    print()  # print new line

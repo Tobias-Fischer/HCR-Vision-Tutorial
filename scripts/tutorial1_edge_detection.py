@@ -23,10 +23,12 @@ class EdgeDetector(object):
         self.pub_edge_image = rospy.Publisher("/edgeimage", Image, queue_size=1)
         self.cv_bridge = CvBridge()
 
+        self.lower_threshold, self.upper_threshold = rospy.get_param("~lower_threshold", 50), rospy.get_param("~upper_threshold", 200)
+
         # Note: I recommend creating the subscriber always last, so that all other variables already exist
         # For images, make sure to set a large buff_size to avoid lags
         self.sub = rospy.Subscriber("/image", Image, self.callback, queue_size=1, buff_size=2**24)
-        print('Init done')
+        print('Init done', self.lower_threshold, self.upper_threshold)
 
     def callback(self, msg):
         # First convert the ROS message to an OpenCV compatible image type
@@ -34,7 +36,7 @@ class EdgeDetector(object):
 
         # You can now use any OpenCV operation you find to extract "meaning" from the image
         # Here, let's extract edges from the image using the Canny Edge detector
-        edges = cv2.Canny(img, 100, 200)
+        edges = cv2.Canny(img, self.lower_threshold, self.upper_threshold)
         
         # Now, let's convert the OpenCV image back to a ROS message
         edge_img = self.cv_bridge.cv2_to_imgmsg(edges)
@@ -44,7 +46,14 @@ class EdgeDetector(object):
         edge_img.header.stamp = msg.header.stamp
 
         # Finally, publish the edge image
-        self.pub_edge_image.publish(edge_img)
+        try:
+            self.pub_edge_image.publish(edge_img)
+        except rospy.ROSException as e:
+            if str(e) == "publish() to a closed topic":
+                print("See ya")
+            else:
+                raise e
+        print('Published image', msg.header.stamp.to_sec(), end='\r')
 
 
 if __name__ == "__main__":
@@ -61,4 +70,4 @@ if __name__ == "__main__":
             raise e
     except KeyboardInterrupt:
         print("Shutting down")
-
+    print()  # print new line

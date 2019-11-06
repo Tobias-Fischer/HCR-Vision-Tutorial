@@ -4,8 +4,11 @@ CMakeLists.txt.user
 .idea*
 scripts/.idea*
 .vscode
-
 *~
+
+# Model files
+models/object_classifier_basic.h5
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

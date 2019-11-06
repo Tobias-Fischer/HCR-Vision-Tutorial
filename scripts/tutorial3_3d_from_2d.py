@@ -12,9 +12,11 @@ import rospy
 import rospkg
 import message_filters
 
-from sensor_msgs.msg import Image
+from image_geometry import PinholeCameraModel
+from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge
 import cv2
+import tf
 
 import numpy as np
 
@@ -25,22 +27,22 @@ class PixelProjector(object):
 
         # We need this to be able to project pixels to rays, see the callback() method
         print("Wait for camera message")
-        cam_info = rospy.wait_for_message("/camera_info", CameraInfo, timeout=None)
+        cam_info = rospy.wait_for_message("/camera/rgb/camera_info", CameraInfo, timeout=None)
         self.img_proc = PinholeCameraModel()
         self.img_proc.fromCameraInfo(cam_info)
 
-        self.tf_broadcaster = TransformBroadcaster()
-        self.camera_frame = 'frame'
+        self.tf_broadcaster = tf.TransformBroadcaster()
+        self.camera_frame = 'camera_rgb_optical_frame'
 
         # Here, we want to synchronize the color and depth topics
         # This is useful if we want to obtain the 3D coordinates
         # given a 2D point (e.g. a keypoint - centre of the hand or something similar)
         # Make sure to install the ros-melodic-openni-launch package
-        color_sub = message_filters.Subscriber('/image', Image)
-        depth_sub = message_filters.Subscriber('/depth_registered', Image)
+        color_sub = message_filters.Subscriber('/camera/rgb/image_rect_color', Image)
+        depth_sub = message_filters.Subscriber('/camera/depth_registered/sw_registered/image_rect', Image)
 
         ts = message_filters.ApproximateTimeSynchronizer([color_sub, depth_sub], 10, 0.1, allow_headerless=False)
-        ts.registerCallback(callback)
+        ts.registerCallback(self.callback)
 
         print('Init done')
 
@@ -52,14 +54,15 @@ class PixelProjector(object):
         # u, v are 2D pixel coordinates
         u, v = 100.0, 100.0  # this pixel of interest should be obtained from some other vision module
 
-        x, y, _ = self.img_proc(u, v)
+        x, y, _ = self.img_proc.projectPixelTo3dRay((u, v))
         z = depth_img[int(u), int(v)]
         # z = z / 1000.0  # This might be necessary depending on the camera
-        print('World coordinates: ', x, y, z)
+        print('World coordinates: {:1.2f} {:1.2f} {:1.2f}'.format(x, y, z), end='\r')
 
-        self.tf_broadcaster.sendTransform([x, y, z], transformations.quaternion_from_euler(0, 0, 0), color_msg.header.stamp,
-                                          '/poi',
-                                          self.camera_frame)
+        if not np.isnan(z):
+            self.tf_broadcaster.sendTransform([x, y, z], tf.transformations.quaternion_from_euler(0, 0, 0), color_msg.header.stamp,
+                                            '/poi',
+                                            self.camera_frame)
 
 
 if __name__ == "__main__":
@@ -76,4 +79,4 @@ if __name__ == "__main__":
             raise e
     except KeyboardInterrupt:
         print("Shutting down")
-
+    print()  # print new line

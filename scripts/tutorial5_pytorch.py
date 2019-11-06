@@ -32,7 +32,7 @@ class ROSPyTorch(object):
         self.model = torchvision.models.detection.keypointrcnn_resnet50_fpn(pretrained=True)
         # set it to evaluation mode, as the model behaves differently
         # during training and during evaluation
-        model.eval()
+        self.model.eval()
 
         '''
         During inference, the model requires only the input tensors, and returns the post-processed
@@ -52,9 +52,9 @@ class ROSPyTorch(object):
     def callback(self, msg):
         img = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         img_tensor = torchvision.transforms.functional.to_tensor(img)
-        output = self.model([image_tensor])
+        output = self.model([img_tensor])
         keypoints_np = output[0]["keypoints"].to("cpu")
-        print(keypoints_np)
+        boxes_np = output[0]["boxes"].to("cpu")
 
 
 if __name__ == "__main__":
@@ -71,4 +71,4 @@ if __name__ == "__main__":
             raise e
     except KeyboardInterrupt:
         print("Shutting down")
-
+    print()  # print new line

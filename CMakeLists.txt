@@ -170,9 +170,9 @@ catkin_install_python(PROGRAMS scripts/tutorial2_face_recognition.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 catkin_install_python(PROGRAMS scripts/tutorial3_3d_from_2d.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-catkin_install_python(PROGRAMS scripts/tutorial_4_tensorflow.py
+catkin_install_python(PROGRAMS scripts/tutorial4_tensorflow.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-catkin_install_python(PROGRAMS scripts/tutorial_5_pytorch.py
+catkin_install_python(PROGRAMS scripts/tutorial5_pytorch.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 ## Mark executables and/or libraries for installation
@@ -195,6 +195,8 @@ catkin_install_python(PROGRAMS scripts/tutorial_5_pytorch.py
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+
+install(DIRECTORY launch DESTINATION "${CATKIN_PACKAGE_SHARE_DESTINATION}")
 
 #############
 ## Testing ##
